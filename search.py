@@ -26,9 +26,9 @@ class Astar:
             self.point=point
             self.father = None
             self.g = g
-            self.h = (abs(endPoint.x - piece.x) + abs(endPoint.y - piece.y))
+            self.h = (abs(endPoint.x - point.x) + abs(endPoint.y - point.y))
 
-    def __init__(self,board_dict,startPoint, endPoint, passTag=0):
+    def __init__(self,board_dict,startPoint, endPoint):
         # 开启表
         self.openList = []
         # 关闭表
@@ -36,7 +36,7 @@ class Astar:
         # 寻路地图
         self.board_dict =board_dict
         # 起点终点
-        if isinstance(startPoint, point) and isinstance(endPoint, point):
+        if isinstance(startPoint,Point) and isinstance(endPoint,Point):
             self.startPoint = startPoint
             self.endPoint = endPoint
         else:
@@ -70,7 +70,62 @@ class Astar:
                 return node
         return None
     def searchNear(self, minF, offsetX, offsetY):
+        new_minF_X=minF.point.x+offsetX
+        new_minF_Y=minF.point.y+offsetY
+        if new_minF_Y and new_minF_Y not in ran :
+            return
+        currentPoint = Point(new_minF_X, new_minF_Y)
+        if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y))=='blocks':
+            if not board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
+                currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
+            else :
+                return
 
+
+        if self.pointInCloseList(currentPoint):
+            return
+        currentNode = self.pointInOpenList(currentPoint)
+        if not currentNode:
+            currentNode = Astar.Node(currentPoint, self.endPoint, g=minF.g + 1)
+            currentNode.father = minF
+            self.openList.append(currentNode)
+            return
+
+        if minF.g + 1 < currentNode.g:  # 如果更小，就重新计算g值，并且改变father
+            currentNode.g = minF.g + 1
+            currentNode.father = minF
+    def start(self):
+        startNode = Astar.Node(self.startPoint, self.endPoint)
+        self.openList.append(startNode)
+        while True:
+            # 找到F值最小的点
+            minF = self.getMinNode()
+            # 把这个点加入closeList中，并且在openList中删除它
+            self.closeList.append(minF)
+            self.openList.remove(minF)
+
+            self.searchNear(minF, 0, -1)
+            self.searchNear(minF, 1, -1)
+            self.searchNear(minF, 1, 0)
+            self.searchNear(minF, 0, 1)
+            self.searchNear(minF, -1, 1)
+            self.searchNear(minF, -1, 0)
+            point = self.endPointInCloseList()
+            if point:  # 如果终点在关闭表中，就返回结果
+                # print("关闭表中")
+                cPoint = point
+                pathList = []
+                while True:
+                    if cPoint.father:
+                        pathList.append(cPoint.point)
+                        cPoint = cPoint.father
+                    else:
+                        # print(pathList)
+                        # print(list(reversed(pathList)))
+                        # print(pathList.reverse())
+                        return list(reversed(pathList))
+            if len(self.openList) == 0:
+                return None
 def print_board(board_dict, message="", debug=False, **kwargs):
     """
     Helper function to print a drawing of a hexagonal board's contents.
@@ -152,6 +207,13 @@ def print_board(board_dict, message="", debug=False, **kwargs):
     board = template.format(message, *cells)
     print(board, **kwargs)
 
+def start():
+    red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+    print_board(board_dict,"hi",True)
+    aStar=Astar(board_dict,Point(-2,1),Point(3,0))
+    pathlist=aStar.start()
+    for a in pathlist:
+        print(a)
 
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
@@ -160,7 +222,7 @@ if __name__ == '__main__':
         board_dict={}
         blockset=[]
         pieceset=[]
-        red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+
         open_list={}
         close_list={}
         ran = range(-3, +3+1)
@@ -175,10 +237,5 @@ if __name__ == '__main__':
                     blockset.append(tuple(piece))
     # TODO: Search for and output winning sequence of moves
     # ...:
-        map=[]
-        for qr in [(q,r) for q in ran for r in ran if -q-r in ran]:
-                map.append(qr)
-    #print_board(board_dict)
-        print(pieceset[0][1])
-        point(int(pieceset[0][0]),int(pieceset[0][1]))
         #aster=Astar(map,chess(pieceset[0]),chess((-3,-2))
+        start()
