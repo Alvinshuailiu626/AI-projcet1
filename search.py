@@ -8,7 +8,7 @@ Authors:
 import sys
 import json
 
-class chess:
+class Point:
     def __init__(self,x,y):
         self.x=x
         self.y=y
@@ -19,30 +19,57 @@ class chess:
         return False
     def __str__(self):
         return "x:"+str(self.x)+",y:"+str(self.y)
+
 class Astar:
     class Node:
-        def __init__(board_dict, Chess, endPoint, g=0):
-            piece.father = parent
-            piece.g = g
-            piece.h = (abs(endPoint.x - piece.x) + abs(endPoint.y - piece.y)) * 10
+        def __init__(self, point, endPoint, g=0):
+            self.point=point
+            self.father = None
+            self.g = g
+            self.h = (abs(endPoint.x - piece.x) + abs(endPoint.y - piece.y))
 
-    def __init__(self,startPoint, endPoint, passTag=0):
+    def __init__(self,board_dict,startPoint, endPoint, passTag=0):
         # 开启表
         self.openList = []
         # 关闭表
         self.closeList = []
         # 寻路地图
-        self.map =self
+        self.board_dict =board_dict
         # 起点终点
-        if isinstance(startPoint, chess) and isinstance(endPoint, chess):
+        if isinstance(startPoint, point) and isinstance(endPoint, point):
             self.startPoint = startPoint
             self.endPoint = endPoint
         else:
-            self.startPoint = chess(*startPoint)
-            self.endPoint = chess(*endPoint)
+            self.startPoint = Point(*startPoint)
+            self.endPoint = Point(*endPoint)
+    def getMinNode(self):
+        """
+        获得openlist中F值最小的节点
+        :return: Node
+        """
+        currentNode = self.openList[0]
+        for node in self.openList:
+            if node.g + node.h < currentNode.g + currentNode.h:
+                currentNode = node
+        return currentNode
 
-        # 可行走标记
-        self.passTag = passTag
+    def pointInCloseList(self, point):
+        for node in self.closeList:
+            if node.point == point:
+                return True
+        return False
+    def pointInOpenList(self, point):
+        for node in self.openList:
+            if node.point == point:
+                return node
+        return None
+
+    def endPointInCloseList(self):
+        for node in self.openList:
+            if node.point == self.endPoint:
+                return node
+        return None
+    def searchNear(self, minF, offsetX, offsetY):
 
 def print_board(board_dict, message="", debug=False, **kwargs):
     """
@@ -153,5 +180,5 @@ if __name__ == '__main__':
                 map.append(qr)
     #print_board(board_dict)
         print(pieceset[0][1])
-        chess(int(pieceset[0][0]),int(pieceset[0][1]))
+        point(int(pieceset[0][0]),int(pieceset[0][1]))
         #aster=Astar(map,chess(pieceset[0]),chess((-3,-2))
