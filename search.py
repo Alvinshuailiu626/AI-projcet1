@@ -75,12 +75,12 @@ class Astar:
         if new_minF_Y and new_minF_Y not in ran :
             return
         currentPoint = Point(new_minF_X, new_minF_Y)
-        if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y))=='blocks':
+        if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y)) is not 'blocks':
             if not board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
                 currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
             else :
                 return
-
+            return
 
         if self.pointInCloseList(currentPoint):
             return
@@ -95,6 +95,10 @@ class Astar:
             currentNode.g = minF.g + 1
             currentNode.father = minF
     def start(self):
+        if self.board_dict.get((self.endPoint.x,self.endPoint.y)) == 'blocks':
+            return
+        #if self.endPoint.x and self.endPoint.y not in ran :
+            #return
         startNode = Astar.Node(self.startPoint, self.endPoint)
         self.openList.append(startNode)
         while True:
@@ -209,10 +213,17 @@ def print_board(board_dict, message="", debug=False, **kwargs):
 
 def start():
     red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+    startpoint=Point(pieceset[0][0],pieceset[0][1])
     print_board(board_dict,"hi",True)
-    aStar=Astar(board_dict,Point(-2,1),Point(3,0))
-    pathlist=aStar.start()
-    for a in pathlist:
+    aStar=Astar(board_dict,startpoint,Point(red_final_position[1][0],red_final_position[1][1]))
+    shortest_path=aStar.start()
+    for final_possition in red_final_position[1:]:
+         print(final_possition[0],final_possition[1])
+         aStar=Astar(board_dict,startpoint,Point(final_possition[0],final_possition[1]))
+         pathlist=aStar.start()
+         if pathlist is not None and len(pathlist)<len(shortest_path):
+            shortest_path=pathlist
+    for a in shortest_path:
         print(a)
 
 # when this module is executed, run the `main` function:
