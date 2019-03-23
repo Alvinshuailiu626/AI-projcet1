@@ -7,6 +7,7 @@ Authors:
 
 import sys
 import json
+import time
 
 class Point:
     def __init__(self,x,y):
@@ -42,15 +43,12 @@ class Astar:
         else:
             self.startPoint = Point(*startPoint)
             self.endPoint = Point(*endPoint)
-    def getMinNode(self):
+    def getNode(self):
         """
         获得openlist中F值最小的节点
         :return: Node
         """
         currentNode = self.openList[0]
-        for node in self.openList:
-            if node.g + node.h < currentNode.g + currentNode.h:
-                currentNode = node
         return currentNode
 
     def pointInCloseList(self, point):
@@ -76,10 +74,11 @@ class Astar:
             return
         currentPoint = Point(new_minF_X, new_minF_Y)
         if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y)) is 'blocks':
-            if not board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
-                currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
-            else :
+
+            if board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
                 return
+            else :
+                currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
 
 
         if self.pointInCloseList(currentPoint):
@@ -103,7 +102,7 @@ class Astar:
         self.openList.append(startNode)
         while True:
             # 找到F值最小的点
-            minF = self.getMinNode()
+            minF = self.getNode()
             # 把这个点加入closeList中，并且在openList中删除它
             self.closeList.append(minF)
             self.openList.remove(minF)
@@ -219,7 +218,6 @@ def start():
         aStar=Astar(board_dict,startpoint,Point(red_final_position[1][0],red_final_position[1][1]))
         shortest_path=aStar.start()
         for final_possition in red_final_position[1:]:
-            print(final_possition[0],final_possition[1])
             aStar=Astar(board_dict,startpoint,Point(final_possition[0],final_possition[1]))
             pathlist=aStar.start()
             if pathlist is not None and len(pathlist)<len(shortest_path):
@@ -229,6 +227,8 @@ def start():
 
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
+
+    start_time = time.time()
     with open(sys.argv[1]) as file:
         data = json.load(file)
         board_dict={}
@@ -251,3 +251,6 @@ if __name__ == '__main__':
     # ...:
         #aster=Astar(map,chess(pieceset[0]),chess((-3,-2))
         start()
+    end = time.time()
+    running_time = end-start_time
+    print(running_time)
