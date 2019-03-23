@@ -36,6 +36,8 @@ class Astar:
         self.closeList = []
         # 寻路地图
         self.board_dict =board_dict
+
+        self.new_board_dict=board_dict
         # 起点终点
         if isinstance(startPoint,Point) and isinstance(endPoint,Point):
             self.startPoint = startPoint
@@ -44,10 +46,6 @@ class Astar:
             self.startPoint = Point(*startPoint)
             self.endPoint = Point(*endPoint)
     def getNode(self):
-        """
-        获得openlist中F值最小的节点
-        :return: Node
-        """
         currentNode = self.openList[0]
         return currentNode
 
@@ -70,12 +68,13 @@ class Astar:
     def searchNear(self, minF, offsetX, offsetY):
         new_minF_X=minF.point.x+offsetX
         new_minF_Y=minF.point.y+offsetY
+
         if new_minF_Y and new_minF_Y not in ran :
             return
         currentPoint = Point(new_minF_X, new_minF_Y)
-        if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y)) is 'blocks':
+        if self.board_dict.__contains__((new_minF_X,new_minF_Y))  and self.board_dict .get((new_minF_X,new_minF_Y)) is 'blocks':
 
-            if board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
+            if self.board_dict .__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
                 return
             else :
                 currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
@@ -84,15 +83,13 @@ class Astar:
         if self.pointInCloseList(currentPoint):
             return
         currentNode = self.pointInOpenList(currentPoint)
+
         if not currentNode:
             currentNode = Astar.Node(currentPoint, self.endPoint, g=minF.g + 1)
             currentNode.father = minF
             self.openList.append(currentNode)
             return
 
-        if minF.g + 1 < currentNode.g:  # 如果更小，就重新计算g值，并且改变father
-            currentNode.g = minF.g + 1
-            currentNode.father = minF
     def start(self):
         if self.board_dict.get((self.endPoint.x,self.endPoint.y)) == 'blocks':
             return
@@ -113,6 +110,7 @@ class Astar:
             self.searchNear(minF, 0, 1)
             self.searchNear(minF, -1, 1)
             self.searchNear(minF, -1, 0)
+
             point = self.endPointInCloseList()
             if point:  # 如果终点在关闭表中，就返回结果
                 # print("关闭表中")
@@ -129,6 +127,8 @@ class Astar:
                         return list(reversed(pathList))
             if len(self.openList) == 0:
                 return None
+        colour=self.board_dict .pop((minF.point.x,minF.point.y))
+        self.board_dict [(new_minF_X,new_minF_Y)]=colour
 def print_board(board_dict, message="", debug=False, **kwargs):
     """
     Helper function to print a drawing of a hexagonal board's contents.
@@ -212,18 +212,34 @@ def print_board(board_dict, message="", debug=False, **kwargs):
 
 def start():
     red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
-    print_board(board_dict,"hi",True)
-    for piece in pieceset:
-        startpoint=Point(piece[0],piece[1])
-        aStar=Astar(board_dict,startpoint,Point(red_final_position[1][0],red_final_position[1][1]))
-        shortest_path=aStar.start()
-        for final_possition in red_final_position[1:]:
-            aStar=Astar(board_dict,startpoint,Point(final_possition[0],final_possition[1]))
-            pathlist=aStar.start()
-            if pathlist is not None and len(pathlist)<len(shortest_path):
-                shortest_path=pathlist
-        for a in shortest_path:
-            print(a)
+    print_board(board_dict,"ashdhas",True)
+    total_cost=100000
+    total_path=[]
+    for i in range(len(pieceset)):
+        cost=0
+        for piece in pieceset:
+
+            startpoint=Point(piece[0],piece[1])
+            aStar=Astar(board_dict,startpoint,Point(red_final_position[1][0],red_final_position[1][1]))
+            shortest_path=aStar.start()
+            for final_possition in red_final_position[1:]:
+                aStar=Astar(board_dict,startpoint,Point(final_possition[0],final_possition[1]))
+                pathlist=aStar.start()
+                if pathlist is not None and len(pathlist)<len(shortest_path):
+                    shortest_path=pathlist
+            cost+=len(shortest_path)
+            print("\n")
+            for b in shortest_path:
+                    print(b)
+        if cost<total_cost:
+            total_cost=cost
+            #total_path.clear()
+            #for list in shortest_path:
+                #total_path.append(list)
+
+        pieceset.append(pieceset.pop(0))
+
+    print(total_cost)
 
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
@@ -234,7 +250,7 @@ if __name__ == '__main__':
         board_dict={}
         blockset=[]
         pieceset=[]
-
+        test=[1,2,3,4]
         open_list={}
         close_list={}
         ran = range(-3, +3+1)
@@ -251,6 +267,7 @@ if __name__ == '__main__':
     # ...:
         #aster=Astar(map,chess(pieceset[0]),chess((-3,-2))
         start()
+
     end = time.time()
     running_time = end-start_time
     print(running_time)
