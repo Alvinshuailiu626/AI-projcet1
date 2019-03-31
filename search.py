@@ -66,9 +66,12 @@ class Astar:
         for position in red_final_position:
             final=Astar.Node(Point(position[0],position[1]))
             self.final_possition.append(final)
-        for blocks in self.blockset:
+        for blocks in blockset:
             node=Astar.Node(Point(blocks[0],blocks[1]))
             self.blockset.append(node)
+        for blocks in self.blockset:
+            if self.final_possition.__contains__(blocks):
+                self.final_possition.remove(blocks)
 
     def endPointInCloseList(self):
         for node in self.nodes:
@@ -149,11 +152,8 @@ class Astar:
              if node_cost<minimun_cost:
                  minimun_cost=node_cost
                  minimun_cost_node=node
-         print(minimun_cost_node)
          self.nodes.remove(minimun_cost_node)
          self.nodes.append(minimun_cost_node.nextMove)
-         for loop in self.nodes:
-             print(loop)
 
          print("move "+str(minimun_cost_node)+"to "+str(minimun_cost_node.nextMove))
 
