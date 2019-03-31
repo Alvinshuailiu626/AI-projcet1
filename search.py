@@ -22,114 +22,151 @@ class Point:
 
 class Astar:
     class Node:
-        def __init__(self, point, endPoint, g=0):
+        def __init__(self, point):
             self.point=point
             self.father = None
-            self.g = g
-            self.h = (abs(endPoint.x - point.x) + abs(endPoint.y - point.y))
+            self.nextMove=None
+            self.openlist=[]
+            self.closelist=[]
 
-    def __init__(self,board_dict,startPoint, endPoint):
-        # 开启表
-        self.openList = []
-        # 关闭表
-        self.closeList = []
+        def pointInCloseList(self, point):
+            for node in self.closelist:
+                if node.point == point:
+                    return True
+            return False
+        def pointInOpenList(self, point):
+            for node in self.openlist:
+                if node.point == point:
+                    return node
+            return None
+
+        def __eq__(self, other):
+            if self.point==other.point:
+                return True
+            return False
+        def __str__(self):
+            return str(self.point.x)+" "+str(self.point.y)
+
+    def __init__(self,board_dict,pieceset,blockset,red_final_position):
         # 寻路地图
         self.board_dict =board_dict
-        # 起点终点
-        if isinstance(startPoint,Point) and isinstance(endPoint,Point):
-            self.startPoint = startPoint
-            self.endPoint = endPoint
-        else:
-            self.startPoint = Point(*startPoint)
-            self.endPoint = Point(*endPoint)
-    def getMinNode(self):
-        """
-        获得openlist中F值最小的节点
-        :return: Node
-        """
-        currentNode = self.openList[0]
-        for node in self.openList:
-            if node.g + node.h < currentNode.g + currentNode.h:
-                currentNode = node
-        return currentNode
+        self.movelist=[Point(1,0),Point(1,-1),Point(0,-1),Point(-1,0),Point(-1,1),Point(0,1)]
+        self.pieceset=pieceset
+        self.blockset=[]
 
-    def pointInCloseList(self, point):
-        for node in self.closeList:
-            if node.point == point:
-                return True
-        return False
-    def pointInOpenList(self, point):
-        for node in self.openList:
-            if node.point == point:
-                return node
-        return None
+        self.final_possition=[]
+
+        self.nodes=[]
+
+        self.moves=[]
+        #createnodes
+        for piece in self.pieceset:
+            node=Astar.Node(Point(piece[0],piece[1]))
+            self.nodes.append(node)
+        for position in red_final_position:
+            final=Astar.Node(Point(position[0],position[1]))
+            self.final_possition.append(final)
+        for blocks in self.blockset:
+            node=Astar.Node(Point(blocks[0],blocks[1]))
+            self.blockset.append(node)
 
     def endPointInCloseList(self):
-        for node in self.openList:
-            if node.point == self.endPoint:
-                return node
-        return None
-    def searchNear(self, minF, offsetX, offsetY):
-        new_minF_X=minF.point.x+offsetX
-        new_minF_Y=minF.point.y+offsetY
-        if new_minF_Y and new_minF_Y not in ran :
+        for node in self.nodes:
+            for position in self.final_possition:
+                if node == position:
+                    self.nodes.remove(node)
+                    return True
+        return False
+    def getNode(self):
+        currentNode = self.nodes[n]
+        return currentNode
+
+    def recalculateNodes(self,node):
+        list=[]
+        for open in node.openlist:
+            node_cost=0
+            for goal in self.final_possition:
+                open_z=open.point.x+open.point.y
+                goal_z=goal.point.x+goal.point.y
+                cost=+max(abs(open.point.x-goal.point.x),abs(open.point.y-goal.point.y),abs(open_z-goal_z))
+                node_cost+=cost
+            list.append(node_cost)
+        return list
+    def calulateStayNodeCost(self,node):
+        othertotalCost=0
+        for other in self.nodes:
+            if other is not node:
+                for goal in self.final_possition:
+                    other_z=other.point.x+other.point.y
+                    goal_z=goal.point.x+goal.point.y
+                    cost=+max(abs(other.point.x-goal.point.x),abs(other.point.y-goal.point.y),abs(other_z-goal_z))
+                    othertotalCost+=cost
+        return othertotalCost
+
+
+    """REDO"""
+    def searchNear(self,node,move):
+        new_node_X=node.point.x+move.x
+        new_node_Y=node.point.y+move.y
+        new_node=Astar.Node(Point(new_node_X,new_node_Y))
+
+        if  new_node_X not in ran or new_node_Y not in ran :
             return
-        currentPoint = Point(new_minF_X, new_minF_Y)
-        if board_dict.__contains__((new_minF_X,new_minF_Y))  and board_dict.get((new_minF_X,new_minF_Y)) is 'blocks':
-            if not board_dict.__contains__((new_minF_X+offsetX,new_minF_Y+offsetY)):
-                currentPoint = Point(new_minF_X+offsetX,new_minF_Y+offsetY)
+        currentPoint = Point(new_node_X, new_node_Y)
+        if self.nodes.__contains__(new_node) or self.blockset.__contains__(new_node) :
+            if not self.nodes.__contains__(Astar.Node(Point(new_node_X+move.x,new_node_Y+move.y))) and not self.blockset.__contains__(Astar.Node(Point(new_node_X+move.x,new_node_Y+move.y))) :
+                currentPoint = Point(new_node_X+move.x,new_node_Y+move.y)
             else :
                 return
-
-
-        if self.pointInCloseList(currentPoint):
+        if node.pointInCloseList(currentPoint):
             return
-        currentNode = self.pointInOpenList(currentPoint)
-        if not currentNode:
-            currentNode = Astar.Node(currentPoint, self.endPoint, g=minF.g + 1)
-            currentNode.father = minF
-            self.openList.append(currentNode)
-            return
+        opennode = node.pointInOpenList(currentPoint)
+        if not opennode:
+            opennode = Astar.Node(currentPoint)
+            opennode.father = node
+            node.openlist.append(opennode)
 
-        if minF.g + 1 < currentNode.g:  # 如果更小，就重新计算g值，并且改变father
-            currentNode.g = minF.g + 1
-            currentNode.father = minF
+        return
+
+    def bestmoveofpiece(self):
+
+      for node in self.nodes:
+          for move in self.movelist:
+              self.searchNear(node,move)
+          list=self.recalculateNodes(node)
+          node.nextMove=node.openlist[list.index(min(list))]
+      return
+
+    def bestmoveofboard(self):
+         minimun_cost=sys.maxsize
+         for node in self.nodes:
+             node_cost=0
+             for goal in self.final_possition:
+                 new_node_z=node.nextMove.point.x+node.nextMove.point.y
+                 goal_z=goal.point.x+goal.point.y
+                 cost=+max(abs(node.nextMove.point.x-goal.point.x),abs(node.nextMove.point.y-goal.point.y),abs(new_node_z-goal_z))
+                 node_cost+=cost+self.calulateStayNodeCost(node)
+             if node_cost<minimun_cost:
+                 minimun_cost=node_cost
+                 minimun_cost_node=node
+         print(minimun_cost_node)
+         self.nodes.remove(minimun_cost_node)
+         self.nodes.append(minimun_cost_node.nextMove)
+         for loop in self.nodes:
+             print(loop)
+
+         print("move "+str(minimun_cost_node)+"to "+str(minimun_cost_node.nextMove))
+
+         return
     def start(self):
-        if self.board_dict.get((self.endPoint.x,self.endPoint.y)) == 'blocks':
-            return
-        #if self.endPoint.x and self.endPoint.y not in ran :
-            #return
-        startNode = Astar.Node(self.startPoint, self.endPoint)
-        self.openList.append(startNode)
-        while True:
-            # 找到F值最小的点
-            minF = self.getMinNode()
-            # 把这个点加入closeList中，并且在openList中删除它
-            self.closeList.append(minF)
-            self.openList.remove(minF)
 
-            self.searchNear(minF, 0, -1)
-            self.searchNear(minF, 1, -1)
-            self.searchNear(minF, 1, 0)
-            self.searchNear(minF, 0, 1)
-            self.searchNear(minF, -1, 1)
-            self.searchNear(minF, -1, 0)
-            point = self.endPointInCloseList()
-            if point:  # 如果终点在关闭表中，就返回结果
-                # print("关闭表中")
-                cPoint = point
-                pathList = []
-                while True:
-                    if cPoint.father:
-                        pathList.append(cPoint.point)
-                        cPoint = cPoint.father
-                    else:
-                        # print(pathList)
-                        # print(list(reversed(pathList)))
-                        # print(pathList.reverse())
-                        return list(reversed(pathList))
-            if len(self.openList) == 0:
-                return None
+            while len(self.nodes)>0:
+                    while self.endPointInCloseList() is False:
+                        self.bestmoveofpiece()
+                        self.bestmoveofboard()
+
+            print("关闭")
+            return
 def print_board(board_dict, message="", debug=False, **kwargs):
     """
     Helper function to print a drawing of a hexagonal board's contents.
@@ -214,19 +251,8 @@ def print_board(board_dict, message="", debug=False, **kwargs):
 def start():
     red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
     print_board(board_dict,"hi",True)
-    for piece in pieceset:
-        startpoint=Point(piece[0],piece[1])
-        aStar=Astar(board_dict,startpoint,Point(red_final_position[1][0],red_final_position[1][1]))
-        shortest_path=aStar.start()
-        for final_possition in red_final_position[1:]:
-            print(final_possition[0],final_possition[1])
-            aStar=Astar(board_dict,startpoint,Point(final_possition[0],final_possition[1]))
-            pathlist=aStar.start()
-            if pathlist is not None and len(pathlist)<len(shortest_path):
-                shortest_path=pathlist
-        for a in shortest_path:
-            print(a)
-
+    aStar=Astar(board_dict,pieceset,blockset,red_final_position)
+    shortest_path=aStar.start()
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
     with open(sys.argv[1]) as file:
