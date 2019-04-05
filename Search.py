@@ -1,223 +1,200 @@
+
 """
 COMP30024 Artificial Intelligence, Semester 1 2019
 Solution to Project Part A: Searching
-
 Authors:
 """
 
 import sys
 import json
 
-
-class Chess:
+class Point:
     def __init__(self,x,y):
         self.x=x
         self.y=y
-
-
+        self.flag = False
     def __eq__(self, other):
         if self.x==other.x and self.y==other.y:
             return True
         return False
     def __str__(self):
         return "x:"+str(self.x)+",y:"+str(self.y)
-class Search:
+
+class Astar:
     class Node:
-        def __init__(self,point, endPoint, g=0):
-            self.point = point #
+        def __init__(self, point):
+            self.point=point
             self.father = None
-            self.g = g #g will recalculate when we need them
-            self.h = 0
-            #max(abs(endPoint.x-point.x),abs(endPoint.y-point.y))*10
+            self.nextMove=None
+            self.openlist=[]
+            self.closelist=[]
+        def pointInCloseList(self, point):
+            for node in self.closelist:
+                if node.point == point:
+                    return True
+            return False
+        def pointInOpenList(self, point):
+            for node in self.openlist:
+                if node.point == point:
+                    return node
+            return None
 
-    def __init__(self,map,startPoint, endPoint, passTag=0):
-        # 开启表
-        self.openList = []
-        # 关闭表
-        self.closeList = []
-        # 寻路地图
-        self.map =map
-        # 起点终点
-        self.allWay = []
-        self.startPoint = startPoint
-        self.endPoint = endPoint
-        # 可行走标记
-        self.passTag = passTag
-
-
-    def getMinNode(self):
-        """
-        get the least f value node from openlist
-        :return: Node
-        """
-        currentNode = self.openList[0]
-        for node in self.openList:
-            if node.g + node.h < currentNode.g + currentNode.h:
-                currentNode = node
-        return currentNode
-
-    def pointInCloseList(self, point):
-        for node in self.closeList:
-            if node.point == point:
+        def __eq__(self, other):
+            if self.point==other.point:
                 return True
-        return False
+            return False
+        def __str__(self):
+            return str(self.point.x)+" "+str(self.point.y)
 
-    def pointInOpenList(self, point):
-        for node in self.openList:
-            if node.point == point:
-                return node
-        return None
+    def __init__(self,board_dict,pieceset,blockset,red_final_position):
+        # 寻路地图
+        self.board_dict =board_dict
+        self.movelist=[Point(1,0),Point(1,-1),Point(0,-1),Point(-1,0),Point(-1,1),Point(0,1)]
+        self.pieceset=pieceset
+        self.blockset=[]
+
+        self.final_possition=[]
+
+        self.nodes=[]
+        self.flag = False
+        self.moves=[]
+        #createnodes
+        for piece in self.pieceset:
+            node=Astar.Node(Point(piece[0],piece[1]))
+            self.nodes.append(node)
+        for position in red_final_position:
+            final=Astar.Node(Point(position[0],position[1]))
+            self.final_possition.append(final)
+        for blocks in blockset:
+            node=Astar.Node(Point(blocks[0],blocks[1]))
+            self.blockset.append(node)
+        for blocks in self.blockset:
+            if self.final_possition.__contains__(blocks):
+                self.final_possition.remove(blocks)
 
     def endPointInCloseList(self):
-        for node in self.closeList:
-            if node.point==self.endPoint:
-                return node
-        return None
+        for node in self.nodes:
+            for position in self.final_possition:
+                if node == position:
+                    self.nodes.remove(node)
+                    return True
+        return False
+    def getNode(self):
+        currentNode = self.nodes[n]
+        return currentNode
 
-    def searchNear(self, minF, offsetX, offsetY):
-        """
-        搜索节点周围的点
-        :param minF:F值最小的节点
-        :param offsetX:坐标偏移量
-        :param offsetY:
-        :return:
-        """
-        # 越界检测
+    def recalculateNodes(self,node):
+        list=[]
+        for open in node.openlist:
+            node_cost=0
+            for goal in self.final_possition:
+                open_z=open.point.x+open.point.y
+                goal_z=goal.point.x+goal.point.y
+                cost=+max(abs(open.point.x-goal.point.x),abs(open.point.y-goal.point.y),abs(open_z-goal_z))
+                node_cost+=cost
+            list.append(node_cost)
+        return list
+    def calulateStayNodeCost(self,node):
+        othertotalCost=0
+        for other in self.nodes:
+            if other is not node:
+                for goal in self.final_possition:
+                    other_z=other.point.x+other.point.y
+                    goal_z=goal.point.x+goal.point.y
+                    cost=+max(abs(other.point.x-goal.point.x),abs(other.point.y-goal.point.y),abs(other_z-goal_z))
+                    othertotalCost+=cost
+        return othertotalCost
 
-        vX = minF.point.x + offsetX
-        vY = minF.point.y + offsetY
-        if abs(vY) > 3 or abs(vX) > 3 or abs(vX+vY) > 3:
+
+    """REDO"""
+    def searchNear(self,node,move):
+        new_node_X=node.point.x+move.x
+        new_node_Y=node.point.y+move.y
+        new_node=Astar.Node(Point(new_node_X,new_node_Y))
+
+        if  new_node_X not in ran or new_node_Y not in ran :
             return
-
-
-        # 如果是障碍，就忽略或者跳
-        if self.map[(vX,vY)] == (7 or 1):
-            #return
-            if abs(vY+offsetY) > 3 or abs(vX+offsetX) > 3 \
-            or abs(vY+vX+offsetX+offsetY) > 3:
+        currentPoint = Point(new_node_X, new_node_Y)
+        if self.nodes.__contains__(new_node) or self.blockset.__contains__(new_node) :
+            if not self.nodes.__contains__(Astar.Node(Point(new_node_X+move.x,\
+            new_node_Y+move.y))) and \
+            not self.blockset.__contains__(Astar.Node(Point(new_node_X+move.x,\
+            new_node_Y+move.y))) :
+                currentPoint = Point(new_node_X+move.x,new_node_Y+move.y)
+                currentPoint.flag = True
+            else :
                 return
-            elif self.map[(vX+offsetX,vY+offsetY)] == 0:
-                currentPoint = Chess(vX+offsetX,vY+offsetY)
-            else:
-                return
-        else:
-            currentPoint = Chess(vX,vY)
-
-        # 如果在关闭表中，就忽略
-        if self.pointInCloseList(currentPoint):
+        if node.pointInCloseList(currentPoint):
             return
-        # 设置单位花费，暂时不跳
-        step = 10
-        # 如果不再openList中，就把它加入openlist
-        currentNode = self.pointInOpenList(currentPoint)
-        if not currentNode:
-            currentNode = Search.Node(currentPoint, self.endPoint, g=minF.g + step)
-            currentNode.father = minF
-            self.openList.append(currentNode)
-            return
-        # 如果在openList中，判断minF到当前点的G是否更小
-        if minF.g + step < currentNode.g:  # 如果更小，就重新计算g值，并且改变father
-            currentNode.g = minF.g + step
-            currentNode.father = minF
+        opennode = node.pointInOpenList(currentPoint)
+        if not opennode:
+            opennode = Astar.Node(currentPoint)
+            opennode.father = node
+            node.openlist.append(opennode)
+
+        return
+
+    def bestmoveofpiece(self):
+
+      for node in self.nodes:
+          for move in self.movelist:
+              self.searchNear(node,move)
+          list=self.recalculateNodes(node)
+          node.nextMove=node.openlist[list.index(min(list))]
+      return
+
+    def bestmoveofboard(self):
+         minimun_cost=sys.maxsize
+         for node in self.nodes:
+             node_cost=0
+             for goal in self.final_possition:
+                 new_node_z=node.nextMove.point.x+node.nextMove.point.y
+                 goal_z=goal.point.x+goal.point.y
+                 cost=+max(abs(node.nextMove.point.x-goal.point.x),abs(node.nextMove.point.y-goal.point.y),abs(new_node_z-goal_z))
+                 node_cost+=cost+self.calulateStayNodeCost(node)
+             if node_cost<minimun_cost:
+                 minimun_cost=node_cost
+                 minimun_cost_node=node
 
 
+         if self.nodes:
 
-    def multiTask(self):
-        if isinstance(self.startPoint, Chess) and \
-        isinstance(self.endPoint, Chess):
-            self.start()
-        else:
-            temperary = []
-            endP = []
-            compareL = []
-            for node in self.startPoint:
-                temperary.append(node)
-            for nod in self.endPoint:
-                if map[(nod.x,nod.y)]!=7:
-                    endP.append(nod)
-            for element in temperary:
-                self.openList.clear()
-                self.closeList.clear()
-                self.startPoint = element
-                for item in endP:
-                    self.endPoint = item
-                    compareL.append(self.start())
-                shorterL = compareL[0]
-                for item in compareL:
-                    if len(shorterL) > len(item):
-                        shorterL = item
-                compareL = []
-                self.allWay.append(shorterL)
-                for node in shorterL:
-                    print(node)
-                print("line----------")
-        return self.allWay
-
-
+             self.nodes.remove(minimun_cost_node)
+             self.nodes.append(minimun_cost_node.nextMove)
+             num = minimun_cost_node.point
+             x1 = num.x
+             y1 = num.y
+             tup1 = (x1,y1)
+             num2 = minimun_cost_node.nextMove.point
+             x2 = num2.x
+             y2 = num2.y
+             tup2 = (x2,y2)
+             if not minimun_cost_node.nextMove.point.flag:
+                 print("MOVE from "+str(tup1)+" to "+str(tup2)+'.')
+             elif minimun_cost_node.nextMove.point.flag:
+                 print("JUMP from "+str(tup1)+" to "+str(tup2)+'.')
+             if minimun_cost_node.nextMove in self.final_possition:
+                 print("EXIT from " + str(tup2)+'.')
+         return
     def start(self):
-        """
-        开始寻路
-        :return: None或Point列表（路径）
-        """
-        # 判断寻路终点是否是障碍
-        #if self.map2d[self.endPoint.x][self.endPoint.y] != self.passTag:
-            #return None
 
-        # 1.将起点放入开启列表
-        startNode = Search.Node(self.startPoint, self.endPoint)
-        self.openList.append(startNode)
-        # 2.主循环逻辑
-        while True:
-                    # 找到F值最小的点
-            minF = self.getMinNode()
-                    # 把这个点加入closeList中，并且在openList中删除它
-            self.closeList.append(minF)
-            self.openList.remove(minF)
-                    # 判断这个节点的上下左右节点
-            self.searchNear(minF, 0, -1)
-            self.searchNear(minF,1,-1)
-            self.searchNear(minF, 1, 0)
-            self.searchNear(minF, 0, 1)
-            self.searchNear(minF,-1,1)
-            self.searchNear(minF, -1, 0)
+            while len(self.nodes)>0:
+                    while self.endPointInCloseList() is False:
+                        self.bestmoveofpiece()
+                        self.bestmoveofboard()
 
-                    # 判断是否终止
-            point = self.endPointInCloseList()
-            if point:  # 如果终点在关闭表中，就返回结果
-                        # print("关闭表中")
-                cPoint = point
-                pathList = []
-                while True:
-                    if cPoint.father:
-                        pathList.append(cPoint.point)
-                        cPoint = cPoint.father
-                    else:
-                        #print(pathList)
-                        #print(list(reversed(pathList)))
-                        #print(pathList.reverse())
-                        pathList.append(cPoint.point)
-                        self.map[(self.startPoint.x,self.startPoint.y)]=0
-                        return list(reversed(pathList))
-
-            if len(self.openList) == 0:
-                return None
-
-
+            return
 def print_board(board_dict, message="", debug=False, **kwargs):
     """
     Helper function to print a drawing of a hexagonal board's contents.
-
     Arguments:
-
     * `board_dict` -- dictionary with tuples for keys and anything printable
     for values. The tuple keys are interpreted as hexagonal coordinates (using
     the axial coordinate system outlined in the project specification) and the
     values are formatted as strings and placed in the drawing at the corres-
     ponding location (only the first 5 characters of each string are used, to
     keep the drawings small). Coordinates with missing values are left blank.
-
     Keyword arguments:
-
     * `message` -- an optional message to include on the first line of the
     drawing (above the board) -- default `""` (resulting in a blank message).
     * `debug` -- for a larger board drawing that includes the coordinates
@@ -284,7 +261,11 @@ def print_board(board_dict, message="", debug=False, **kwargs):
     board = template.format(message, *cells)
     print(board, **kwargs)
 
-
+def start():
+    red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+    print_board(board_dict,"hi",True)
+    aStar=Astar(board_dict,pieceset,blockset,red_final_position)
+    shortest_path=aStar.start()
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
     with open(sys.argv[1]) as file:
@@ -292,36 +273,20 @@ if __name__ == '__main__':
         board_dict={}
         blockset=[]
         pieceset=[]
-        red_final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
-        final_postion = []
+
+        open_list={}
+        close_list={}
         ran = range(-3, +3+1)
-        map={}#创建dic方便查询flag
-        for qr in [(q,r) for q in ran for r in ran if -q-r in ran]:
-            map[qr]=0
         for pieces in data.keys():
             if pieces == "pieces":
                 for piece in data[pieces]:
                     board_dict[tuple(piece)]=data['colour']
-                    pieceset.append(Chess(piece[0],piece[1]))
-                    map[tuple(piece)] = 1
+                    pieceset.append(tuple(piece))
             elif pieces == "blocks":
                 for piece in data[pieces]:
                     board_dict[tuple(piece)]="blocks"
                     blockset.append(tuple(piece))
-                    map[tuple(piece)] = 7
-
     # TODO: Search for and output winning sequence of moves
     # ...:
-    #only for test
-    for item in red_final_position:
-        x = item[0]
-        y = item[1]
-        final_postion.append(Chess(x,y))
-    aStar=Search(map,pieceset,final_postion)
-    pathList=aStar.multiTask()
-    if pathList:
-        for list in pathList:
-            for point in list:
-                map[(point.x,point.y)]=9
-    print_board(board_dict,"ss",True)
-    print(map)
+        #aster=Astar(map,chess(pieceset[0]),chess((-3,-2))
+        start()
