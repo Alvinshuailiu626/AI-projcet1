@@ -8,74 +8,70 @@ Authors:
 import sys
 import json
 
-class Point:
-    def __init__(self,x,y):
+class Piece:
+    def __init__(self,x,y,colour):
         self.x=x
         self.y=y
-        self.openlist=[]
+        self.colour=colour
 
     def __eq__(self, other):
         if self.x==other.x and self.y==other.y:
             return True
         return False
     def __str__(self):
-        return "x:"+str(self.x)+",y:"+str(self.y)
+        return "("+str(self.x)+","+str(self.y)+ ") ："+str(self.colour)
 
-class Astar:
-    class Node:
-        def __init__(self, point):
-            self.points=points
-            self.father = None
-            self.nextMovePoint=None
-            self.nextMove=None
-            self.g=0
-            self.h=0
-            self.openlist=[]
-            self.movelist=[Point(1,0),Point(1,-1),Point(0,-1),Point(-1,0),Point(-1,1),Point(0,1)]
-        def searchNear(self):
-            for point in points:
-                New_point_list=[]
-                for move in movelist:
-                     new_point=point.x+move.x
-                     new_point=point.y+move.y
-                     if  new_node_X not in ran or new_node_Y not in ran :
-                         return
-                     currentPoint = Point(new_node_X, new_node_Y)
-                     if self.points.__contains__(currentPoint) or self.blockset.__contains__(currentPoint) :
-                         if not self.points.__contains__(Point(new_node_X+move.x,new_node_Y+move.y)) and not self.blockset.__contains__(Point(new_node_X+move.x,new_node_Y+move.y)) :
-                             currentPoint = Point(new_node_X+move.x,new_node_Y+move.y)
-                         else :
-                             return
+class Node:
 
-            opennode = node.pointInOpenList(currentPoint)
-            if not opennode:
-                opennode = Astar.Node(currentPoint)
-                opennode.father = node
-                node.openlist.append(opennode)
-
-            return
-    def __init__(self,board_dict,pieceset,blockset,final_position):
+    def __init__(self,pieceset,blockset,final_position,g=0,lastmove=None):
         # 寻路地图
 
         self.pieceset=pieceset
         self.blockset=blockset
-        self.closelist=[]
-        self.final_possition=final_position
-        self.nodes=[]
+        self.g=g
+        self.h=0
+        self.final_position=final_position
+        self.nextnodes=[]
+        self.lastmove=lastmove
 
         #createnodes
-    def getMinNode(self):
-        currentNode = self.nodes[0]
-        for node in self.nodes:
-            if node.g + node.h < currentNode.g + currentNode.h:
-                currentNode = node
-        return currentNode
+    def piecereachedEnd(self):
+        for piece in self.pieceset:
+            for endposition in self.final_position:
+                if piece.x == endposition[0] and piece.y==endposition[1]:
+                    return piece
+        return
+    def getCost(self):
+        for piece in self.pieceset:
+            for endposition in self.final_position:
+                self.h+=max(abs(piece.x-endposition[0]),abs(piece.y-endposition[1]),abs((piece.x+piece.y)-(endposition[0]+endposition[1])))
+        return
 
-    def pointInCloseList(self,node):
-        for point in node.points:
-            for endpoint in node.close_list:
-                if point == endpoint:
-                    return True
+    def generate_nextnodes(self):
+        for piece in self.pieceset:
+            for move in moves:
+                print(str(piece.x+move[0])+","+str(piece.y+move[1]))
+                return
+    def Legal_move(self,piece,move):
+        new_piece=Piece(piece.x+move[0],piece.y+move[1],piece.colour)
+        if self.pieceinBlockset(new_piece) or self.pieceinPieceset(new_piece) :
+            new_piece=Piece(piece.x+move[0]+move[0],piece.y+move[1]+move[1],piece.colour)
+            if self.pieceinBlockset(new_piece) or self.pieceinPieceset(new_piece) :
+                return None
+        return new_piece
+    def pieceinBlockset(self,new_piece):
+        for block in self.blockset:
+            if block==new_piece:
+                return True
+        return False
+    def pieceinPieceset(self,new_piece):
+        for piece in self.pieceset:
+            if piece==new_piece:
+                return True
+        return False
+    def test(self):
+        print(self.Legal_move(self.pieceset[0],(0,-1)))
+        return
 
 
 def print_board(board_dict, message="", debug=False, **kwargs):
@@ -158,7 +154,10 @@ def print_board(board_dict, message="", debug=False, **kwargs):
     # fill in the template to create the board drawing, then print!
     board = template.format(message, *cells)
     print(board, **kwargs)
-
+def start():
+    final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+    astar=Node(pieceset,blockset,final_position)
+    astar.test()
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
     with open(sys.argv[1]) as file:
@@ -166,16 +165,15 @@ if __name__ == '__main__':
         board_dict={}
         blockset=[]
         pieceset=[]
-
-        open_list={}
-        close_list={}
+        moves=[(1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)]
         ran = range(-3, +3+1)
         for pieces in data.keys():
             if pieces == "pieces":
                 for piece in data[pieces]:
                     board_dict[tuple(piece)]=data['colour']
-                    pieceset.append(Point(piece[0],piece[1]))
+                    pieceset.append(Piece(piece[0],piece[1],data['colour']))
             elif pieces == "blocks":
                 for block in data[pieces]:
                     board_dict[tuple(piece)]="blocks"
-                    blockset.append(Point(block[0],block[1]))
+                    blockset.append(Piece(block[0],block[1],'blocks'))
+        start()
