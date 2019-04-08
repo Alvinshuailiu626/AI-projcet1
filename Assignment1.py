@@ -111,37 +111,20 @@ class Node:
                 if open is closednode:
                     openlist.remove(open)
         return False
-
-    def start_1(self):
-        self.piecereachedEnd()
-        self.generate_nextnodes()
-        for list in openlist:
-            print(list.h,list.g,list.lastmove)
-        print("")
-        node=self.getMinnode()
-        print(node.g+node.h,node.lastmove)
-        print("")
-        node.start_1()
-        return
     def returnFather(self,node):
         if node.father is not None:
             print(node.lastmove)
             self.returnFather(node.father)
         return
     def start(self):
-
         self.piecereachedEnd()
         if len(self.pieceset)<1:
+            print(len(openlist))
             self.returnFather(self)
         else:
             self.generate_nextnodes()
-
             node=self.getMinnode()
-
             node.start()
-
-
-
         return
 
 
