@@ -7,12 +7,14 @@ Authors:
 
 import sys
 import json
+import copy
 
 class Piece:
-    def __init__(self,x,y,colour):
+    def __init__(self,x,y,colour,endpoint=None):
         self.x=x
         self.y=y
         self.colour=colour
+        self.endpoint=endpoint
 
     def __eq__(self, other):
         if self.x==other.x and self.y==other.y:
@@ -23,7 +25,7 @@ class Piece:
 
 class Node:
 
-    def __init__(self,pieceset,blockset,final_position,g=0,lastmove=None):
+    def __init__(self,pieceset,blockset,final_position,g=0,lastmove=None,father=None):
         # 寻路地图
 
         self.pieceset=pieceset
@@ -33,27 +35,21 @@ class Node:
         self.final_position=final_position
         self.nextnodes=[]
         self.lastmove=lastmove
+        self.father=father
 
         #createnodes
     def piecereachedEnd(self):
+        newpieceset=copy.deepcopy(self.pieceset)
         for piece in self.pieceset:
             for endposition in self.final_position:
                 if piece.x == endposition[0] and piece.y==endposition[1]:
-                    return piece
+                    newpieceset.remove(piece)
+        self.pieceset=newpieceset
         return
-    def getCost(self):
-        for piece in self.pieceset:
-            for endposition in self.final_position:
-                self.h+=max(abs(piece.x-endposition[0]),abs(piece.y-endposition[1]),abs((piece.x+piece.y)-(endposition[0]+endposition[1])))
-        return
-
-    def generate_nextnodes(self):
-        for piece in self.pieceset:
-            for move in moves:
-                print(str(piece.x+move[0])+","+str(piece.y+move[1]))
-                return
     def Legal_move(self,piece,move):
         new_piece=Piece(piece.x+move[0],piece.y+move[1],piece.colour)
+        if  abs(piece.x+move[0]+piece.y+move[1])>3 or piece.x+move[0] not in ran or piece.y+move[1] not in ran:
+            return None
         if self.pieceinBlockset(new_piece) or self.pieceinPieceset(new_piece) :
             new_piece=Piece(piece.x+move[0]+move[0],piece.y+move[1]+move[1],piece.colour)
             if self.pieceinBlockset(new_piece) or self.pieceinPieceset(new_piece) :
@@ -69,8 +65,83 @@ class Node:
             if piece==new_piece:
                 return True
         return False
-    def test(self):
-        print(self.Legal_move(self.pieceset[0],(0,-1)))
+    def closestEndpoint(self,piece):
+        minimun_cost_toEnd=sys.maxsize
+        closestEndpoint=self.final_position[0]
+        for endposition in self.final_position:
+            cost=max(abs(piece.x-endposition[0]),abs(piece.y-endposition[1]),abs((piece.x+piece.y)-(endposition[0]+endposition[1])))
+            if cost<minimun_cost_toEnd:
+                minimun_cost_toEnd=cost
+                closestEndpoint=endposition
+        piece.endpoint=closestEndpoint
+        return closestEndpoint
+
+    def getCost(self):
+        for piece in self.pieceset:
+            self.closestEndpoint(piece)
+            self.h+=max(abs(piece.x-piece.endpoint[0]),abs(piece.y-piece.endpoint[1]),abs((piece.x+piece.y)-(piece.endpoint[0]+piece.endpoint[1])))*0.8
+        return
+
+    def new_piece_list(self,moved_piece):
+        piecelist=[]
+        for piece in self.pieceset:
+            if piece is not moved_piece:
+                piecelist.append(piece)
+        return piecelist
+    def generate_nextnodes(self):
+        for piece in self.pieceset:
+            for move in moves:
+                if self.Legal_move(piece,move) is not None:
+                    list=self.new_piece_list(piece)
+                    list.append(self.Legal_move(piece,move))
+                    New_node=Node(list,self.blockset,self.final_position,self.g+1,"move "+str(piece)+" to " +str(self.Legal_move(piece,move)),self)
+                    openlist.append(New_node)
+                    New_node.getCost()
+    def getMinnode(self):
+        Minnode=openlist[0]
+        for node in openlist:
+            if node.h+node.g< Minnode.h+Minnode.g:
+                Minnode=node
+        closelist.append(Minnode)
+        self.nodeinclosedlist(node)
+        return Minnode
+    def nodeinclosedlist(self,node):
+        for closednode in closelist:
+            for open in openlist:
+                if open is closednode:
+                    openlist.remove(open)
+        return False
+
+    def start_1(self):
+        self.piecereachedEnd()
+        self.generate_nextnodes()
+        for list in openlist:
+            print(list.h,list.g,list.lastmove)
+        print("")
+        node=self.getMinnode()
+        print(node.g+node.h,node.lastmove)
+        print("")
+        node.start_1()
+        return
+    def returnFather(self,node):
+        if node.father is not None:
+            print(node.lastmove)
+            self.returnFather(node.father)
+        return
+    def start(self):
+
+        self.piecereachedEnd()
+        if len(self.pieceset)<1:
+            self.returnFather(self)
+        else:
+            self.generate_nextnodes()
+
+            node=self.getMinnode()
+
+            node.start()
+
+
+
         return
 
 
@@ -156,8 +227,9 @@ def print_board(board_dict, message="", debug=False, **kwargs):
     print(board, **kwargs)
 def start():
     final_position=[(3,-3),(3,-2),(3,-1),(3,0)]
+    print_board(board_dict,"hi",True)
     astar=Node(pieceset,blockset,final_position)
-    astar.test()
+    astar.start()
 # when this module is executed, run the `main` function:
 if __name__ == '__main__':
     with open(sys.argv[1]) as file:
@@ -165,6 +237,8 @@ if __name__ == '__main__':
         board_dict={}
         blockset=[]
         pieceset=[]
+        openlist=[]
+        closelist=[]
         moves=[(1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)]
         ran = range(-3, +3+1)
         for pieces in data.keys():
@@ -174,6 +248,6 @@ if __name__ == '__main__':
                     pieceset.append(Piece(piece[0],piece[1],data['colour']))
             elif pieces == "blocks":
                 for block in data[pieces]:
-                    board_dict[tuple(piece)]="blocks"
+                    board_dict[tuple(block)]="blocks"
                     blockset.append(Piece(block[0],block[1],'blocks'))
         start()
